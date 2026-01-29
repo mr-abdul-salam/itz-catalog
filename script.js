@@ -201,7 +201,7 @@ function adminLogin() {
   const pass = document.getElementById('admin-password').value;
   const message = document.getElementById('login-message');
 
-  if (pass === 'password') { // Change password in production
+  if (pass === 'itz1234') { // Change password in production
     localStorage.setItem('adminLoggedIn', 'true');
     document.getElementById('login-section').style.display = 'none';
     document.getElementById('admin-dashboard').style.display = 'block';
@@ -416,4 +416,5 @@ function saveCroppedImage() {
     currentImageInput.value = croppedDataUrl;
     closeCropModal();
   }
+
 }
