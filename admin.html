@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />  
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>IRFAN Tiles Zone - Admin</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Roboto:wght@300;400&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <header>
+    <div class="logo">
+      <h1>IRFAN Tiles Zone - Admin Panel</h1>
+    </div>
+    <button class="hamburger" onclick="toggleMenu()">☰</button>
+    <nav id="nav-menu">
+      <ul>
+        <li><a href="index.html">Home</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="categories.html">Categories</a></li>
+        <li><a href="products.html">Products</a></li>
+        <li><a href="gallery.html">Gallery</a></li>
+        <li><a href="contact.html">Contact</a></li>
+        <li><a href="faq.html">FAQ</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main>
+    <section id="login-section">
+      <h2>Admin Login</h2>
+      <input type="password" id="admin-password" placeholder="Enter Password" />
+      <button onclick="adminLogin()">Login</button>
+      <p id="login-message"></p>
+    </section>
+
+    <section id="admin-dashboard" style="display:none;">
+      <h3>Manage Categories</h3>
+      <div class="admin-form">
+        <input id="new-cat" placeholder="New Category" />
+        <input id="new-cat-order" type="number" placeholder="Order (e.g., 1)" />
+        <button onclick="addCategory()">Add Category</button>
+      </div>
+      <ul id="category-list-admin"></ul>
+
+      <h3>Manage Subcategories</h3>
+      <select id="cat-select"></select>
+      <div class="admin-form">
+        <input id="new-sub" placeholder="New Subcategory" />
+        <button onclick="addSubcategory()">Add Subcategory</button>
+      </div>
+
+      <h3>Add Product</h3>
+      <div class="admin-form" style="display: flex; flex-direction: row; flex-wrap: wrap; gap: 15px;">
+        <div>
+          <label for="prod-cat">Category:</label>
+          <select id="prod-cat" onchange="updateSubcategoryDropdown()"></select>
+        </div>
+        <div>
+          <label for="prod-sub">Subcategory:</label>
+          <select id="prod-sub"></select>
+        </div>
+        <div>
+          <label for="prod-title">Title:</label>
+          <input id="prod-title" placeholder="Title" />
+        </div>
+        <div>
+          <label for="prod-desc">Description:</label>
+          <input id="prod-desc" placeholder="Description" />
+        </div>
+        <div>
+          <label for="prod-size">Size:</label>
+          <input id="prod-size" placeholder="Size" />
+        </div>
+        <div>
+          <label for="prod-quality">Quality:</label>
+          <input id="prod-quality" placeholder="Quality" />
+        </div>
+        <div>
+          <label for="prod-image-file">Image:</label>
+          <input type="file" id="prod-image-file" accept="image/*" onchange="handleImageUpload(this)" />
+        </div>
+        <div>
+          <input id="prod-image" placeholder="(Upload & crop image)" readonly />
+        </div>
+        <div>
+          <button onclick="addProduct()">Add Product</button>
+        </div>
+      </div>
+
+      <ul id="product-list-admin"></ul>
+    </section>
+
+    <!-- Cropper Modal -->
+    <div id="crop-modal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <span class="close" onclick="closeCropModal()">&times;</span>
+        <h3>Crop Your Image</h3>
+        <img id="crop-image" src="" alt="Image to crop" />
+        <button onclick="saveCroppedImage()">Save Cropped Image</button>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 IRFAN Tiles Zone. All rights reserved.</p>
+  </footer>
+
+  <script>
+    function toggleMenu() {
+      const nav = document.getElementById('nav-menu');
+      nav.classList.toggle('active');
+    }
+  </script>
+</body>
+</html>

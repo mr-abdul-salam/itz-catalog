@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>IRFAN Tiles Zone - Home</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Roboto:wght@300;400&display=swap" rel="stylesheet"/>
+</head>
+<body>
+  <header>
+    <div class="logo">
+      <h1>IRFAN Tiles Zone</h1>
+      <p>Luxury Tiles & Ceramics for Your Dream Home</p>
+    </div>
+    <button class="hamburger" onclick="toggleMenu()">☰</button>
+    <nav id="nav-menu">
+      <ul>
+        <li><a href="index.html" class="active">Home</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="categories.html">Categories</a></li>
+        <li><a href="products.html">Products</a></li>
+        <li><a href="gallery.html">Gallery</a></li>
+        <li><a href="contact.html">Contact</a></li>
+        <li><a href="faq.html">FAQ</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <h2>Welcome to IRFAN Tiles Zone</h2>
+      <p>Discover unparalleled elegance in every tile and ceramic. Crafted for luxury and durability.</p>
+      <a href="categories.html" class="btn-primary">Explore Our Collections</a>
+    </section>
+
+    <section class="why-choose-us">
+      <h3>Why Choose Our Tiles & Ceramics?</h3>
+      <ul>
+        <li>Premium quality materials sourced worldwide.</li>
+        <li>Durability with elegant finishes and designs.</li>
+        <li>Eco-friendly manufacturing processes.</li>
+        <li>Variety of sizes, styles, and finishes for every taste.</li>
+        <li>Expert customer support & customization options.</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 IRFAN Tiles Zone. All rights reserved.</p>
+    
+  </footer>
+
+  <script>
+    // Parallax background effect on scroll
+    window.addEventListener('scroll', () => {
+      const hero = document.querySelector('.hero');
+      const scrollPos = window.scrollY;
+      hero.style.backgroundPosition = `center calc(50% + ${scrollPos * 0.3}px)`;
+    });
+
+    // Hamburger menu toggle
+    function toggleMenu() {
+      const nav = document.getElementById('nav-menu');
+      nav.classList.toggle('active');
+    }
+  </script>
+</body>
+</html>
