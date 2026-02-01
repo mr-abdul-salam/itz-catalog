@@ -1,13 +1,39 @@
-// Data persistence
-let categories = JSON.parse(localStorage.getItem('categories')) || [
-  { name: 'Ceramic', subcategories: ['Glossy', 'Matte'], order: 1 },
-  { name: 'Porcelain', subcategories: ['Large Format', 'Subway'], order: 2 }
-];
+// Initialize Supabase client
+const { createClient } = supabase;
+const db = createClient('https://muvprlsaokswtvuzxnoo.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im11dnBybHNhb2tzd3R2dXp4bm9vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5MzA3MDIsImV4cCI6MjA4NTUwNjcwMn0.A5Z2EJ9JojIYLmHzBHlHHnO1Y-POuR6JBeWjv3WVotc');
 
-let products = JSON.parse(localStorage.getItem('products')) || [
-  { category: 'Ceramic', subcategory: 'Glossy', title: 'Elegant Glossy Tile', description: 'Shiny and durable.', size: '12x12', quality: 'Premium', image: 'https://via.placeholder.com/280x200?text=Ceramic+Glossy+Tile' },
-  { category: 'Porcelain', subcategory: 'Matte', title: 'Porcelain Matte Tile', description: 'Durable porcelain matte finish.', size: '24x24', quality: 'Premium', image: 'https://via.placeholder.com/280x200?text=Porcelain+Matte+Tile' }
-];
+// Data persistence (now from Supabase)
+let categories = [];
+let products = [];
+
+async function loadData() {
+  try {
+    const { data: cats, error: catErr } = await db
+      .from("categories")
+      .select("*")
+      .order("order");
+
+    const { data: prods, error: prodErr } = await db
+      .from("products")
+      .select("*");
+
+    if (catErr || prodErr) {
+      console.error("Supabase error:", catErr || prodErr);
+      return;
+    }
+
+    categories = cats || [];
+    products = prods || [];
+
+    if (document.getElementById("product-list")) loadProductsPage();
+    if (document.getElementById("gallery-grid")) loadGalleryPage();
+    if (document.getElementById("category-list")) loadCategoriesPage();
+  } catch (err) {
+    console.error("Error loading data:", err);
+  }
+}
+
+document.addEventListener("DOMContentLoaded", loadData);
 
 // --- CATEGORY PAGE FUNCTIONS ---
 function loadCategoriesPage() {
@@ -179,7 +205,7 @@ function loadGalleryPage() {
 // --- WHATSAPP INQUIRY FUNCTION ---
 function openWhatsApp(title, size, quality, image) {
   const message = encodeURIComponent(`Hi, I'm interested in this product:\n\nTitle: ${title}\nSize: ${size}\nQuality: ${quality}\nImage: ${image}\n\nPlease provide more details.`);
-  const url = `https://wa.me/1234567890?text=${message}`; // Replace 1234567890 with your WhatsApp number
+  const url = `https://wa.me/+923038188816?text=${message}`; // Replace 1234567890 with your WhatsApp number
   window.open(url, '_blank');
 }
 
@@ -219,7 +245,8 @@ function adminLogout() {
   document.getElementById('admin-password').value = '';
 }
 
-function loadAdminDashboard() {
+async function loadAdminDashboard() {
+  await loadData(); // Reload data from Supabase
   updateCategoryAdminList();
   populateCategorySelect();
   updateProductAdminList();
@@ -235,12 +262,17 @@ function updateCategoryAdminList() {
 
     const btn = document.createElement('button');
     btn.textContent = 'Remove';
-    btn.onclick = () => {
-      categories.splice(i, 1);
-      localStorage.setItem('categories', JSON.stringify(categories));
-      updateCategoryAdminList();
-      populateCategorySelect();
-      populateProductCategoryDropdown();
+    btn.onclick = async () => {
+      try {
+        const { error } = await db.from('categories').delete().eq('id', cat.id);
+        if (error) throw error;
+        await loadData(); // Reload after delete
+        updateCategoryAdminList();
+        populateCategorySelect();
+        populateProductCategoryDropdown();
+      } catch (err) {
+        alert('Error removing category: ' + err.message);
+      }
     };
     li.appendChild(btn);
     ul.appendChild(li);
@@ -258,32 +290,45 @@ function populateCategorySelect() {
   });
 }
 
-function addCategory() {
+async function addCategory() {
   const input = document.getElementById('new-cat');
   const orderInput = document.getElementById('new-cat-order');
   const name = input.value.trim();
   const order = parseInt(orderInput.value.trim()) || 1;
   if (name) {
-    categories.push({name, subcategories: [], order});
-    localStorage.setItem('categories', JSON.stringify(categories));
-    input.value = '';
-    orderInput.value = '';
-    updateCategoryAdminList();
-    populateCategorySelect();
-    populateProductCategoryDropdown();
+    try {
+      const { error } = await db.from('categories').insert([{ name, subcategories: [], order }]);
+      if (error) throw error;
+      input.value = '';
+      orderInput.value = '';
+      await loadData(); // Reload after insert
+      updateCategoryAdminList();
+      populateCategorySelect();
+      populateProductCategoryDropdown();
+    } catch (err) {
+      alert('Error adding category: ' + err.message);
+    }
   } else {
     alert('Enter Category Name');
   }
 }
 
-function addSubcategory() {
+async function addSubcategory() {
   const select = document.getElementById('cat-select');
   const newSub = document.getElementById('new-sub').value.trim();
   if (newSub) {
-    categories[select.value].subcategories.push(newSub);
-    localStorage.setItem('categories', JSON.stringify(categories));
-    document.getElementById('new-sub').value = '';
-    alert(`Subcategory "${newSub}" added to ${categories[select.value].name}`);
+    const catIndex = select.value;
+    const cat = categories[catIndex];
+    const updatedSubs = [...cat.subcategories, newSub];
+    try {
+      const { error } = await db.from('categories').update({ subcategories: updatedSubs }).eq('id', cat.id);
+      if (error) throw error;
+      document.getElementById('new-sub').value = '';
+      alert(`Subcategory "${newSub}" added to ${cat.name}`);
+      await loadData(); // Reload after update
+    } catch (err) {
+      alert('Error adding subcategory: ' + err.message);
+    }
   } else {
     alert('Enter Subcategory Name');
   }
@@ -298,10 +343,15 @@ function updateProductAdminList() {
 
     const btn = document.createElement('button');
     btn.textContent = 'Remove';
-    btn.onclick = () => {
-      products.splice(i, 1);
-      localStorage.setItem('products', JSON.stringify(products));
-      updateProductAdminList();
+    btn.onclick = async () => {
+      try {
+        const { error } = await db.from('products').delete().eq('id', prod.id);
+        if (error) throw error;
+        await loadData(); // Reload after delete
+        updateProductAdminList();
+      } catch (err) {
+        alert('Error removing product: ' + err.message);
+      }
     };
     li.appendChild(btn);
     ul.appendChild(li);
@@ -341,7 +391,7 @@ function updateSubcategoryDropdown() {
   }
 }
 
-function addProduct() {
+async function addProduct() {
   const cat = document.getElementById('prod-cat').value.trim();
   const sub = document.getElementById('prod-sub').value.trim();
   const title = document.getElementById('prod-title').value.trim();
@@ -355,18 +405,23 @@ function addProduct() {
     return;
   }
 
-  products.push({category: cat, subcategory: sub, title, description, size, quality, image});
-  localStorage.setItem('products', JSON.stringify(products));
-  alert('Product added!');
-  updateProductAdminList();
+  try {
+    const { error } = await db.from('products').insert([{ category: cat, subcategory: sub, title, description, size, quality, image }]);
+    if (error) throw error;
+    alert('Product added!');
+    await loadData(); // Reload after insert
+    updateProductAdminList();
 
-  // Clear Inputs
-  document.getElementById('prod-title').value = '';
-  document.getElementById('prod-desc').value = '';
-  document.getElementById('prod-size').value = '';
-  document.getElementById('prod-quality').value = '';
-  document.getElementById('prod-image').value = '';
-  document.getElementById('prod-image-file').value = '';
+    // Clear Inputs
+    document.getElementById('prod-title').value = '';
+    document.getElementById('prod-desc').value = '';
+    document.getElementById('prod-size').value = '';
+    document.getElementById('prod-quality').value = '';
+    document.getElementById('prod-image').value = '';
+    document.getElementById('prod-image-file').value = '';
+  } catch (err) {
+    alert('Error adding product: ' + err.message);
+  }
 }
 
 // --- Image cropper functionality ---
@@ -405,16 +460,24 @@ function closeCropModal() {
   }
 }
 
-function saveCroppedImage() {
+async function saveCroppedImage() {
   if(cropper) {
     const canvas = cropper.getCroppedCanvas({
       width: 400,
       height: 400,
       imageSmoothingQuality: 'high'
     });
-    const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.9);
-    currentImageInput.value = croppedDataUrl;
-    closeCropModal();
+    canvas.toBlob(async (blob) => {
+      try {
+        const fileName = `tile-${Date.now()}.jpg`;
+        const { data, error } = await db.storage.from('tiles').upload(fileName, blob);
+        if (error) throw error;
+        const { data: urlData } = db.storage.from('tiles').getPublicUrl(fileName);
+        currentImageInput.value = urlData.publicUrl;
+        closeCropModal();
+      } catch (err) {
+        alert('Error uploading image: ' + err.message);
+      }
+    });
   }
-
 }
