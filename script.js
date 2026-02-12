@@ -500,6 +500,7 @@ function updateSubcategoryDropdown() {
 }
 
 async function addProduct() {
+  brand: currentBrand,
   const cat = document.getElementById('prod-cat').value.trim();
   const sub = document.getElementById('prod-sub').value.trim();
   const title = document.getElementById('prod-title').value.trim();
@@ -659,4 +660,5 @@ async function loadSimilarProducts(product) {
 }
 
 document.addEventListener("DOMContentLoaded", loadProductDetail);
+
 
