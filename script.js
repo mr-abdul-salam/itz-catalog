@@ -2,20 +2,34 @@
 const { createClient } = supabase;
 const db = createClient('https://muvprlsaokswtvuzxnoo.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im11dnBybHNhb2tzd3R2dXp4bm9vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk5MzA3MDIsImV4cCI6MjA4NTUwNjcwMn0.A5Z2EJ9JojIYLmHzBHlHHnO1Y-POuR6JBeWjv3WVotc');
 
+function openProductPage(id) {
+  window.location.href = `product.html?id=${id}`;
+}
+
 // Data persistence (now from Supabase)
 let categories = [];
 let products = [];
+let currentBrand = localStorage.getItem("selectedBrand") || null;
+
+function setBrand(brand) {
+  currentBrand = brand;
+  localStorage.setItem("selectedBrand", brand);
+  loadData();
+}
 
 async function loadData() {
   try {
     const { data: cats, error: catErr } = await db
       .from("categories")
       .select("*")
+      .eq("brand", currentBrand)
       .order("order");
+
 
     const { data: prods, error: prodErr } = await db
       .from("products")
-      .select("*");
+      .select("*")
+      .eq("brand", currentBrand);
 
     if (catErr || prodErr) {
       console.error("Supabase error:", catErr || prodErr);
@@ -121,7 +135,10 @@ function showProductsByCategorySubcat(catName, subcatName) {
     const div = document.createElement('div');
     div.className = 'product-grid-item';
     div.innerHTML = `
-      <img src="${prod.image}" alt="${prod.title}" />
+      <img src="${prod.image}" 
+             alt="${prod.title}" 
+             style="cursor:pointer;"
+             onclick="openProductPage('${prod.id}')">
       <h4>${prod.title}</h4>
       <p>${prod.description}</p>
       <p><b>Size:</b> ${prod.size} | <b>Quality:</b> ${prod.quality}</p>
@@ -176,7 +193,11 @@ function loadProductsPage() {
         const div = document.createElement('div');
         div.className = 'product-grid-item';
         div.innerHTML = `
-          <img src="${prod.image}" alt="${prod.title}" />
+          <img src="${prod.image}" 
+             alt="${prod.title}" 
+             style="cursor:pointer;"
+             onclick="openProductPage('${prod.id}')">
+
           <h4>${prod.title}</h4>
           <p>${prod.description}</p>
           <p><b>Size:</b> ${prod.size} | <b>Quality:</b> ${prod.quality}</p>
@@ -194,13 +215,23 @@ function loadGalleryPage() {
   const container = document.getElementById('gallery-grid');
   container.innerHTML = '';
 
-  products.forEach(prod => {
+  if (!products || !products.length) return;
+
+  // Shuffle all products randomly
+  const shuffled = [...products].sort(() => Math.random() - 0.5);
+
+  shuffled.forEach(prod => {
     const img = document.createElement('img');
     img.src = prod.image;
     img.alt = prod.title;
+    img.style.cursor = "pointer";
+
+    img.onclick = () => openProductPage(prod.id);
+
     container.appendChild(img);
   });
 }
+
 
 // --- WHATSAPP INQUIRY FUNCTION ---
 function openWhatsApp(title, size, quality, image) {
@@ -256,28 +287,84 @@ async function loadAdminDashboard() {
 function updateCategoryAdminList() {
   const ul = document.getElementById('category-list-admin');
   ul.innerHTML = '';
-  categories.forEach((cat, i) => {
-    const li = document.createElement('li');
-    li.textContent = `${cat.name} (Order: ${cat.order})`;
 
-    const btn = document.createElement('button');
-    btn.textContent = 'Remove';
-    btn.onclick = async () => {
-      try {
-        const { error } = await db.from('categories').delete().eq('id', cat.id);
-        if (error) throw error;
-        await loadData(); // Reload after delete
-        updateCategoryAdminList();
-        populateCategorySelect();
-        populateProductCategoryDropdown();
-      } catch (err) {
-        alert('Error removing category: ' + err.message);
-      }
+  categories.forEach(cat => {
+    const li = document.createElement('li');
+
+    li.innerHTML = `
+      <strong>${cat.name}</strong> (Order: ${cat.order})
+      <br>
+      Subcategories:
+        ${(cat.subcategories || []).map((sub, index) =>
+        `<span onclick="editSubcategoryById('${cat.id}', ${index})"
+        style="cursor:pointer; color:blue;">${sub}</span>`
+        ).join(", ") || "None"}
+
+      function editSubcategoryById(catId, index) {
+      const cat = categories.find(c => c.id === catId);
+      editSubcategory(cat, index);
+}
+
+      <br>
+      
+    `;
+    
+
+    const editBtn = document.createElement('button');
+    editBtn.textContent = "Edit";
+    editBtn.onclick = () => editCategory(cat);
+
+    const removeBtn = document.createElement('button');
+    removeBtn.textContent = "Remove";
+    removeBtn.onclick = async () => {
+      await db.from("categories")
+        .delete()
+        .eq("id", cat.id);
+
+      loadData();
     };
-    li.appendChild(btn);
+
+    li.appendChild(editBtn);
+    li.appendChild(removeBtn);
     ul.appendChild(li);
   });
 }
+
+async function editCategory(cat) {
+  const newName = prompt("Edit Category Name:", cat.name);
+  if (!newName) return;
+
+  let newOrder = parseInt(prompt("Edit Order:", cat.order));
+
+  if (!newOrder || newOrder <= 0) {
+    alert("Invalid order");
+    return;
+  }
+
+  // Check used orders
+  const { data: existing } = await db
+    .from("categories")
+    .select("order")
+    .eq("brand", currentBrand);
+
+  const usedOrders = existing
+    .filter(c => c.order !== cat.order)
+    .map(c => c.order);
+
+  while (usedOrders.includes(newOrder)) {
+    newOrder++;
+  }
+
+  await db.from("categories")
+    .update({
+      name: newName,
+      order: newOrder
+    })
+    .eq("id", cat.id);
+
+  loadData();
+}
+
 
 function populateCategorySelect() {
   const select = document.getElementById('cat-select');
@@ -293,42 +380,63 @@ function populateCategorySelect() {
 async function addCategory() {
   const input = document.getElementById('new-cat');
   const orderInput = document.getElementById('new-cat-order');
+
   const name = input.value.trim();
-  const order = parseInt(orderInput.value.trim()) || 1;
-  if (name) {
-    try {
-      const { error } = await db.from('categories').insert([{ name, subcategories: [], order }]);
-      if (error) throw error;
-      input.value = '';
-      orderInput.value = '';
-      await loadData(); // Reload after insert
-      updateCategoryAdminList();
-      populateCategorySelect();
-      populateProductCategoryDropdown();
-    } catch (err) {
-      alert('Error adding category: ' + err.message);
-    }
-  } else {
-    alert('Enter Category Name');
+  let desiredOrder = parseInt(orderInput.value.trim());
+
+  if (!name) {
+    alert("Enter Category Name");
+    return;
   }
+
+  // Get existing orders for current brand
+  const { data: existing } = await db
+    .from("categories")
+    .select("order")
+    .eq("brand", currentBrand);
+
+  const usedOrders = existing.map(c => c.order);
+
+  let finalOrder = desiredOrder;
+
+  // If no order entered, start from 1
+  if (!finalOrder || finalOrder <= 0) {
+    finalOrder = 1;
+  }
+
+  // If order already used, auto-increment
+  while (usedOrders.includes(finalOrder)) {
+    finalOrder++;
+  }
+
+  await db.from("categories").insert({
+    brand: currentBrand,
+    name,
+    subcategories: [],
+    order: finalOrder
+  });
+
+  input.value = '';
+  orderInput.value = '';
+
+  alert("Category added with order: " + finalOrder);
+  loadData();
 }
 
-async function addSubcategory() {
-  const select = document.getElementById('cat-select');
-  const newSub = document.getElementById('new-sub').value.trim();
-  if (newSub) {
-    const catIndex = select.value;
-    const cat = categories[catIndex];
-    const updatedSubs = [...cat.subcategories, newSub];
-    try {
-      const { error } = await db.from('categories').update({ subcategories: updatedSubs }).eq('id', cat.id);
-      if (error) throw error;
-      document.getElementById('new-sub').value = '';
-      alert(`Subcategory "${newSub}" added to ${cat.name}`);
-      await loadData(); // Reload after update
-    } catch (err) {
-      alert('Error adding subcategory: ' + err.message);
-    }
+  async function editSubcategory(cat, subIndex) {
+    const newName = prompt("Edit Subcategory:", cat.subcategories[subIndex]);
+    if (!newName) return;
+
+    const updatedSubs = [...cat.subcategories];
+    updatedSubs[subIndex] = newName;
+
+    await db.from("categories")
+    .update({ subcategories: updatedSubs })
+    .eq("id", cat.id);
+
+    loadData();
+  }
+
   } else {
     alert('Enter Subcategory Name');
   }
@@ -481,3 +589,74 @@ async function saveCroppedImage() {
     });
   }
 }
+
+
+async function loadProductDetail() {
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get("id");
+
+  if (!id) return;
+
+  const { data: product } = await db
+    .from("products")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (!product) return;
+
+  const container = document.getElementById("product-detail");
+
+  container.innerHTML = `
+    <div style="display:flex; flex-wrap:wrap; gap:30px;">
+      <img src="${product.image}" 
+           style="max-width:400px; width:100%; border-radius:10px;">
+
+      <div>
+        <h2>${product.title}</h2>
+        <p><strong>Category:</strong> ${product.category}</p>
+        <p><strong>Subcategory:</strong> ${product.subcategory}</p>
+        <p><strong>Size:</strong> ${product.size}</p>
+        <p><strong>Quality:</strong> ${product.quality}</p>
+        <p>${product.description}</p>
+      </div>
+    </div>
+  `;
+
+  loadSimilarProducts(product);
+}
+
+async function loadSimilarProducts(product) {
+  let { data: similar } = await db
+    .from("products")
+    .select("*")
+    .eq("subcategory", product.subcategory)
+    .neq("id", product.id);
+
+  if (!similar.length) {
+    const { data: fallback } = await db
+      .from("products")
+      .select("*")
+      .eq("category", product.category)
+      .neq("id", product.id);
+
+    similar = fallback;
+  }
+
+  const container = document.getElementById("similar-products");
+
+  similar.slice(0, 4).forEach(prod => {
+    const div = document.createElement("div");
+    div.className = "product-grid-item";
+    div.innerHTML = `
+      <img src="${prod.image}" 
+           style="cursor:pointer;"
+           onclick="openProductPage('${prod.id}')">
+      <h4>${prod.title}</h4>
+    `;
+    container.appendChild(div);
+  });
+}
+
+document.addEventListener("DOMContentLoaded", loadProductDetail);
+
