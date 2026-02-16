@@ -827,7 +827,7 @@ async function loadProductDetail() {
 // --- WHATSAPP FUNCTION ---
 function openWhatsApp(title, size, quality, productId) {
 
-  const productUrl = window.location.origin + "/ITZ Catalog/product.html?id=" + productId;
+  const productUrl = window.location.origin + "/itz-catalog/product.html?id=" + productId;
 
   const message =
     "Hi, I'm interested in this product:\n\n" +
@@ -900,4 +900,5 @@ document.querySelectorAll(".product-grid-item").forEach(el => {
   el.classList.add("hidden");
   observer.observe(el);
 });
+
 
