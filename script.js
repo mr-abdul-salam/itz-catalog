@@ -811,26 +811,40 @@ async function loadProductDetail() {
         <p><strong>Size:</strong> ${product.size}</p>
         <p><strong>Quality:</strong> ${product.quality}</p>
         <p>${product.description}</p>
+
+        <button 
+          class="inquiry-btn"
+          onclick="openWhatsApp('${product.title}', '${product.size}', '${product.quality}', '${product.id}')">
+          Inquire on WhatsApp
+        </button>
       </div>
     </div>
   `;
-  
-  const whatsappNumber = "923038188816"; // your number without +
-    const message = `Hello, I am interested in this product:
-
-    Name: ${product.title}
-    Category: ${product.category}
-    Subcategory: ${product.subcategory}
-    Size: ${product.size}
-    Quality: ${product.quality}
-
-    Please share more details.`;
-
-  const whatsappLink = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
-
 
   loadSimilarProducts(product);
 }
+
+// --- WHATSAPP FUNCTION ---
+function openWhatsApp(title, size, quality, productId) {
+
+  const productUrl = window.location.origin + "/ITZ Catalog/product.html?id=" + productId;
+
+  const message =
+    "Hi, I'm interested in this product:\n\n" +
+    "Title: " + title + "\n" +
+    "Size: " + size + "\n" +
+    "Quality: " + quality + "\n\n" +
+    "Product Link: " + productUrl;
+
+  const encodedMessage = encodeURIComponent(message);
+
+  const whatsappNumber = "923038188816"; // your number without +
+  const whatsappLink = "https://wa.me/" + whatsappNumber + "?text=" + encodedMessage;
+
+  window.open(whatsappLink, "_blank");
+}
+
+
 
 async function loadSimilarProducts(product) {
   let { data: similar } = await db
@@ -886,5 +900,4 @@ document.querySelectorAll(".product-grid-item").forEach(el => {
   el.classList.add("hidden");
   observer.observe(el);
 });
-
 
