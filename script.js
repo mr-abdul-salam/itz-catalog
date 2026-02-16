@@ -815,7 +815,7 @@ async function loadProductDetail() {
     </div>
   `;
   
-  const whatsappNumber = "923176338510"; // your number without +
+  const whatsappNumber = "923038188816"; // your number without +
     const message = `Hello, I am interested in this product:
 
     Name: ${product.title}
@@ -886,4 +886,5 @@ document.querySelectorAll(".product-grid-item").forEach(el => {
   el.classList.add("hidden");
   observer.observe(el);
 });
+
 
